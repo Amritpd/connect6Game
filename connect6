@@ -1,0 +1,339 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<math.h>
+#include<stdbool.h>
+
+void initialBoard(char board[21][21], int n) {
+
+    int row, column;
+
+    for (row = 0; row < n; row++) {
+        for (column = 0; column < n; column++) {
+            board[row][column] = 'U'; //Remaining spots are filled with U
+
+            {
+                printf("%c", board[row][column]); //Prints board
+            }
+        }
+        {
+            printf("\n");
+        }
+    }
+}
+
+
+// This function is responsible for printing out the current state of the board
+
+void printBoard(char board[21][21], int n) {
+
+    int row, column;
+
+    for (row = 0; row < n; row++) {
+        for (column = 0; column < n; column++) {
+
+            if (board[row][column] != 'R' && board[row][column] != 'B' && board[row][column] != 'W') {
+                board[row][column] = 'U'; //Remaining spots are filled with U
+            }
+            {
+                printf("%c", board[row][column]); //Prints board
+            }
+        }
+        {
+            printf("\n");
+        }
+    }
+}
+
+// This function places red (blocked) squares
+
+int redSquare(char board[21][21], int dimensions) {
+
+    int row = 1, column = 1;
+
+    while (row >= 0 && column >= 0) {
+
+        printf("Enter position (ROW COL) of blocked square; (-1 -1) to finish: ");
+        scanf("%d %d", &row, &column);
+
+        // checking various conditions
+        if (row < 0 || column < 0) {
+            return 0;
+        } else if ((row >= dimensions) || (column >= dimensions)) {
+            printf("Out of range row or column\n");
+        } else if (board[row][column] != 'U') {
+            printf("Position already occupied, try again\n");
+        } else {
+            board[row][column] = 'R';
+            printBoard(board, dimensions); //Puts blocked square in given position
+        }
+    }
+}
+
+//Function that adds up the number of stones to the right
+
+int toTheLeftAndRight(char board[21][21], int dimensions, int row, int col) {
+
+    int counterRight = 0, counterLeft = 0;
+
+    while ((col + counterRight) < dimensions && board[row][col] == board[row][col + counterRight]) {
+        counterRight++;
+    }
+
+    while ((col - counterLeft) >= 0 && board[row][col] == board[row][col - counterLeft]) {
+        counterLeft++;
+    }
+
+    return counterRight + counterLeft;
+}
+
+//Function that adds up the number of stones downwards
+
+int checkDownAndUp(char board[21][21], int dimensions, int row, int col) {
+
+    int counterDown = 0, counterUp = 0;
+
+    while ((row + counterDown) < dimensions && board[row][col] == board[row + counterDown][col]) {
+        counterDown++;
+    }
+
+    while ((row - counterUp) >= 0 && board[row][col] == board[row - counterUp][col]) {
+        counterUp++;
+    }
+
+    return counterDown + counterUp;
+}
+
+//Function finds longest streak on the North-west to South-East diagonals
+
+int checkNWSEDiagonal(char board[21][21], int dimensions, int row, int col) {
+    int counterDiagonal = 0, counterDiagonal2 = 0;
+
+    while ((row + counterDiagonal) < dimensions && (col + counterDiagonal) < dimensions && board[row][col] == board[row + counterDiagonal][col + counterDiagonal]) {
+        counterDiagonal++; //Checks South East part
+    }
+
+    while ((row - counterDiagonal2) >= 0 && (col - counterDiagonal2) >= 0 && board[row][col] == board[row - counterDiagonal2][col - counterDiagonal2]) {
+        counterDiagonal2++; //Checks North West part
+    }
+
+    return counterDiagonal + counterDiagonal2;
+}
+
+//Function finds longest streak of stones on the South-west to North-East diagonals
+
+int checkSWNEDiagonal(char board[21][21], int dimensions, int row, int col) {
+    int counterDiagonal = 0, counterDiagonal2;
+
+    while ((row + counterDiagonal) < dimensions && (col - counterDiagonal) >= 0 && board[row][col] == board[row + counterDiagonal][col - counterDiagonal]) {
+        counterDiagonal++; //Checks South West part
+    }
+
+    while ((row - counterDiagonal2) >= 0 && (col + counterDiagonal2) < dimensions && board[row][col] == board[row - counterDiagonal2][col + counterDiagonal2]) {
+        counterDiagonal2++; //Checks North East part
+    }
+
+    return counterDiagonal + counterDiagonal2;
+}
+
+//Function finds the longest overall streak of stones at a given point
+
+int findLongest(char board[21][21], int n, int row, int col) {
+
+    int horizontalSum, verticalSum, diagonalSum, diagonalSum2, longestLength;
+    //First diagonal variable is for NW to SE, second is for NE to SW
+
+    horizontalSum = toTheLeftAndRight(board, n, row, col) - 1;
+    verticalSum = checkDownAndUp(board, n, row, col) - 1;
+    diagonalSum = checkNWSEDiagonal(board, n, row, col) - 1;
+    diagonalSum2 = checkSWNEDiagonal(board, n, row, col) - 1;
+    //Finding respective sums in the x,y, and diagonal directions
+    longestLength = (int) (fmax(diagonalSum2, fmax(diagonalSum, fmax(verticalSum, horizontalSum))));
+
+    return longestLength; //longestLength will be the largest values out of the four results above
+
+}
+
+//Function checks for the winner
+
+bool checkWinner(char board[21][21], int dimensions) {
+    int row, col;
+
+    for (row = 0; row < dimensions; row++) { //For loop is to check every position on the board for a win
+        for (col = 0; col < dimensions; col++) {
+           if (board[row][col] == 'W' || board[row][col] == 'B') {
+                if (findLongest(board, dimensions, row, col) >= 6) {
+                    printf("Row: %d Col: %d\n", row, col);
+                    printf("%d\n", findLongest(board, dimensions, row, col));
+                    return true;
+                }
+            } 
+        }
+    }
+    return false;
+}
+
+//Function checks whether the board is full or not and if there is a draw
+
+bool drawCheck(char board[21][21], int dimensions) {
+    int row, col, spotFilled = 0;
+
+    for (row = 0; row < dimensions; row++) {
+        for (col = 0; col < dimensions; col++) {
+            if (board[row][col] != 'U') {
+                spotFilled++;
+            }
+            if (spotFilled == dimensions * dimensions) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+//Finds the longest run of white and black if either color was placed at the square
+
+int longestPossibleStreak(char board[21][21], int dimensions, int row, int col, char stone) {
+    int longestStreak = 0;
+
+    if (board[row][col] == 'U') {
+        board[row][col] = stone;
+        longestStreak = findLongest(board, dimensions, row, col);
+        board[row][col] = 'U';
+    }
+    return longestStreak;
+}
+
+int boardEvaluate(char board[21][21], int dimensions, char stone) {
+    int row = 0, col = 0, temp, bestScore = 0;
+
+    for (row; row < dimensions; row++) {
+        for (col; col < dimensions; col++) {
+            temp = longestPossibleStreak(board, dimensions, row, col, stone);
+            if (temp > bestScore) {
+                bestScore = temp;
+            }
+        }
+    }
+
+}
+
+int miniMax(char board[21][21], int row, int col, int depth, int currentDepth, char computerStone) {
+    int bestScore = 0;
+
+    if (depth == currentDepth) {
+        return bestScore;
+    } else return miniMax(board, row, col, depth, currentDepth + 1, computerStone);
+}
+//This function is responsible for the computer's moves
+
+void computerMove(char board[21][21], int dimensions, char computerStone) {
+  
+    
+    char playerStone;
+    if (computerStone == 'W') {
+        playerStone = 'B';
+    } else playerStone = 'W';
+
+    int temp = 0, bestScore = 0, row, col, bestRow, bestCol;
+    for (row = 0; row < dimensions; row++) {
+        for (col = 0; col < dimensions; col++) {
+            if (board[row][col] == 'U') {
+                temp = longestPossibleStreak(board, dimensions, row, col, computerStone) + longestPossibleStreak(board, dimensions, row, col, playerStone);
+            }
+            if (temp > bestScore) {
+                bestScore = temp;
+                bestRow = row;
+                bestCol = col;
+            }
+        }
+    }
+    board[bestRow][bestCol] = computerStone; //Place stone in best spot
+    
+    printf("Computer moves %c at %d %d\n", computerStone, bestRow, bestCol);
+}
+
+//This function is responsible for the player's moves
+
+bool humanMove(char board[21][21], int dimensions, char inFirstPlayer[10]) {
+    int row = 1, column = 1;
+    bool validNumber = false;
+    char *pHumanPlayer = "White";
+    if (inFirstPlayer[0] == 'W') {
+        pHumanPlayer = "Black";
+    }
+    while (row >= 0 && column >= 0 && !validNumber) {
+        printf("Enter %s move (ROW COL): ", pHumanPlayer);
+        scanf("%d %d", &row, &column);
+        if (row < 0 || column < 0) {
+            return true; //Returns true when user inputs -ve numbers so program terminates
+        }
+        if (row >= dimensions || column >= dimensions) {//checking various conditions, same as below
+            printf("Out of range row or column\n");
+
+        } else if (board[row][column] != 'U') {
+            printf("That square is already occupied or blocked\n");
+
+        } else {
+            validNumber = true;
+            board[row][column] = *pHumanPlayer;
+            return false;
+        }
+    }
+
+}
+//This function is responsible for the moves made during the game
+
+void playerMoves(char board[21][21], int dimensions, char inFirstPlayer[10]) {
+
+    int turnCounter = 0;
+    while (turnCounter < dimensions * dimensions) {//Use while loop to alternate between white and black
+        if (turnCounter % 2 == 0) {//Ensures black goes first
+            if (inFirstPlayer[0] == 'B') {//If the computer is the black player
+                computerMove(board, dimensions, inFirstPlayer[0]);
+            } else if (humanMove(board, dimensions, inFirstPlayer)) {
+                return;
+            }
+            printBoard(board, dimensions);
+            if (checkWinner(board, dimensions)) {
+                puts("\nBlack player wins.");
+                return;
+            }
+        } else if (turnCounter % 2 == 1) {
+            if (inFirstPlayer[0] == 'W') {//If the computer is the white player
+                computerMove(board, dimensions, inFirstPlayer[0]);
+            } else if (humanMove(board, dimensions, inFirstPlayer)) {
+                return;
+            }
+            printBoard(board, dimensions);
+            if (checkWinner(board, dimensions)) {
+                puts("\nWhite player wins.");
+                return;
+            }
+        }
+        turnCounter++;
+
+        if (drawCheck(board, dimensions)) {
+            puts("\nDraw!");
+            return;
+        }
+    }
+
+}
+
+int main(void) {
+
+    int boardSize; //dimensions of the board
+    char board[21][21], inFirstPlayer[10]; //declaring arrays
+
+    //prompt user for board dimensions
+    printf("Enter board dimensions (n), n>=6 and n<=21: ");
+    scanf("%d", &boardSize);
+
+    initialBoard(board, boardSize); //Print initial board
+    printf("Computer playing B or W?: "); //Prompt user for which stone will be computer
+    scanf("%s", inFirstPlayer);
+    redSquare(board, boardSize);
+    playerMoves(board, boardSize, inFirstPlayer);
+
+    return 0;
+}
